@@ -43,6 +43,7 @@ class Actions:
 
     @staticmethod
     def displayExistingCodes(KEY,loadJson=False):
+        lDict={}
         print "\n\nCodes for following languages were found"
         if loadJson:
             with open(os.path.join(os.getcwd(), FilePath.CODEJSON, KEY), 'r')as f:
@@ -50,14 +51,15 @@ class Actions:
 
         for index, (key, value) in enumerate(Actions.Code.items()):
             print index + 1, "\b. ", key
+            lDict[str(index+1)]=key
 
-        l_choice = raw_input("\nEnter languages for which you want to see the code...(separated by space): ")
+        l_choice = raw_input("\nEnter number of languages for which you want to see the code...(separated by space): ")
         temp = l_choice.split(' ')
         for item in temp:
-            if item in Actions.Code:
-                print "\n\n\n", item.capitalize(), "Code:\n"
-                print "############    Total Codes found for",item,"language: ",len(Actions.Code[item]),"    ############\n\n"
-                for index2,item2 in enumerate(Actions.Code[item]):
+            if item in lDict:
+                print "\n\n\n", lDict[item].capitalize(), "Code:\n"
+                print "############    Total Codes found for",lDict[item],"language: ",len(Actions.Code[lDict[item]]),"    ############\n\n"
+                for index2,item2 in enumerate(Actions.Code[lDict[item]]):
                     print index2+1,"\b."
                     print Actions.printCode(item2)
                     print "\n\n----------------------------------------------------\n\n"

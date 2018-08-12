@@ -5,6 +5,7 @@ from BeautifulSoup import BeautifulSoup
 import json
 from constants import Globals,XPath,FilePath,Actions
 import os
+from selenium.webdriver.chrome.options import Options
 
 class Scrapper:
 
@@ -15,6 +16,8 @@ class Scrapper:
         self.totalElements=None
         self.L_languages=['c','python','cpp','java']
         self.Code={}
+        self.chrome_options = Options()
+        self.chrome_options.add_argument("--headless")
 
     def closePopup(self):
         count=0
@@ -49,7 +52,7 @@ class Scrapper:
             json.dump(self.Code, f, indent=4)
 
     def scrapeWeb(self):
-        self.driver = webdriver.Chrome(os.path.join(os.getcwd(),FilePath.CHROME_DRIVERPATH))
+        self.driver = webdriver.Chrome(executable_path=os.path.join(os.getcwd(),FilePath.CHROME_DRIVERPATH),chrome_options=self.chrome_options)
         self.driver.get(Globals.BASE_URL)
 
         self.driver.find_element_by_name(Globals.SEARCH).send_keys(self.KEY)
@@ -68,7 +71,7 @@ class Scrapper:
 
         if choice<=len(self.actualElements):
             item=self.actualElements[choice-1]
-            print "Clicking on : ",item.text
+            print "Trying to Scrape : ",item.text
             item.click()
             time.sleep(2)
 
