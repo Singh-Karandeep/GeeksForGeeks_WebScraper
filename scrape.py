@@ -85,7 +85,7 @@ class Scrapper:
                 item2 = item2.split("\n")[1:]
                 code[index]=item2
 
-            if code is not None:
+            if code:
                 self.codeFound=True
                 if len(code)>0:
                     self.Code[item]=code
