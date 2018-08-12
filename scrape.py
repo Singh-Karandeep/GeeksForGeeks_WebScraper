@@ -15,9 +15,11 @@ class Scrapper:
         self.driver=None
         self.totalElements=None
         self.L_languages=['c','python','cpp','java']
+        self.l=None
         self.Code={}
         self.chrome_options = Options()
         self.chrome_options.add_argument("--headless")
+        self.codeFound=False
 
     def closePopup(self):
         count=0
@@ -32,17 +34,20 @@ class Scrapper:
             count+=1
 
     def fetchSearchResults(self):
-        l=self.driver.find_elements_by_xpath(XPath.GS_TITLE)
+        self.l=self.driver.find_elements_by_xpath(XPath.GS_TITLE)
+
+    def displayResults(self):
         print "Results found for",self.KEY,"are: "
         count = 0
-        if len(l):
-            for item in l:
+        if len(self.l):
+            for item in self.l:
                 if len(item.text):
                     hrefLink = item.get_attribute(Globals.HREF)
                     self.actualElements.append(item)
                     print count+1,":",item.text,"   (",hrefLink,")"
                     count+=1
         self.totalElements=count
+        print "Total Search Results : ", self.totalElements
 
     def dumpJson(self):
         if not os.path.exists(os.path.join(os.getcwd(),FilePath.CODEJSON)):
@@ -65,8 +70,11 @@ class Scrapper:
         self.main_window = self.driver.current_window_handle
 
         self.fetchSearchResults()
+        self.displayResults()
+        if self.totalElements>0:
+            self.scrape()
 
-        print "Total Elements: ",self.totalElements
+    def scrape(self):
         choice=input("Enter link to scrap: ")
 
         if choice<=len(self.actualElements):
@@ -115,6 +123,19 @@ class Scrapper:
             self.scrapeWeb()
             if self.codeFound:
                 Actions.displayExistingCodes(None)
+            else:
+                while self.totalElements>0:
+                    choice=raw_input("Want to continue (y/n)")
+                    if choice=='y'or choice=='Y':
+                        self.driver.switch_to.window(self.main_window)
+                        self.displayResults()
+                        if self.totalElements > 0:
+                            self.scrape()
+                            if self.codeFound:
+                                Actions.displayExistingCodes(None)
+                    else:
+                        print "Exiting... : )"
+                        exit(1)
             self.closeSession()
 
 if __name__=="__main__":
