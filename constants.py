@@ -1,5 +1,6 @@
-import os,json,cgi
+import os,json
 from HTMLParser import HTMLParser
+from sys import platform
 
 class Globals:
     CC_COMPLIANCE='cc-compliance'
@@ -13,7 +14,10 @@ class XPath:
 
 class FilePath:
     CODEJSON='Codes'
-    CHROME_DRIVERPATH='chromedriver.exe'
+    if platform=="win32":
+        CHROME_DRIVERPATH = os.path.join(os.getcwd(),'Drivers/chromedriver.exe')
+    elif platform == "linux" or platform == "linux2":
+        CHROME_DRIVERPATH = os.path.join(os.getcwd(),'Drivers/chromedriver')
 
 class Actions:
 
@@ -61,7 +65,7 @@ class Actions:
                 print "############    Total Codes found for",lDict[item],"language: ",len(Actions.Code[lDict[item]]),"    ############\n\n"
                 for index2,item2 in enumerate(Actions.Code[lDict[item]]):
                     print index2+1,"\b."
-                    print Actions.printCode(item2)
+                    Actions.printCode(item2)
                     print "\n\n----------------------------------------------------\n\n"
             else:
                 print "Code for", item, "was not found in Language Dictionary..."
