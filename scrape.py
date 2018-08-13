@@ -6,6 +6,8 @@ import json
 from constants import Globals,XPath,FilePath,Actions
 import os
 from selenium.webdriver.chrome.options import Options
+import logging
+from selenium.webdriver.remote.remote_connection import LOGGER
 
 class Scrapper:
 
@@ -19,6 +21,7 @@ class Scrapper:
         self.Code={}
         self.chrome_options = Options()
         self.chrome_options.add_argument("--headless")
+        self.chrome_options.add_argument("--log-level=3")
         self.codeFound=False
 
     def closePopup(self):
@@ -53,11 +56,16 @@ class Scrapper:
         if not os.path.exists(os.path.join(os.getcwd(),FilePath.CODEJSON)):
             os.mkdir(os.path.join(os.getcwd(),FilePath.CODEJSON))
 
-        with open(os.path.join(os.getcwd(),FilePath.CODEJSON,self.KEY), 'w')as f:
+        if not os.path.exists(os.path.join(os.getcwd(),FilePath.CODEJSON,self.KEY)):
+            os.mkdir(os.path.join(os.getcwd(),FilePath.CODEJSON,self.KEY))
+
+        with open(os.path.join(os.getcwd(),FilePath.CODEJSON,self.KEY,self.KEY+'.json'), 'w')as f:
             json.dump(self.Code, f, indent=4)
 
     def scrapeWeb(self):
-        self.driver = webdriver.Chrome(executable_path=os.path.join(os.getcwd(),FilePath.CHROME_DRIVERPATH),chrome_options=self.chrome_options)
+        LOGGER.setLevel(logging.WARNING)
+        self.driver = webdriver.Chrome(executable_path=os.path.join(os.getcwd(),FilePath.CHROME_DRIVERPATH),
+                                       chrome_options=self.chrome_options)
         self.driver.get(Globals.BASE_URL)
 
         self.driver.find_element_by_name(Globals.SEARCH).send_keys(self.KEY)
@@ -90,7 +98,7 @@ class Scrapper:
         soup=BeautifulSoup(html)
         self.codeFound=False
         for item in self.L_languages:
-            code=soup.findAll('pre',attrs={'class': lambda L: L and L.startswith('brush: '+ item)})
+            code=soup.findAll('pre',attrs={'class': lambda L: L and L.startswith('brush: '+ item+';')})
             for index,item2 in enumerate(code):
                 item2 = str(item2)[:-6]         #Remove </pre>
                 item2 = item2.split("\n")[1:]
@@ -104,9 +112,10 @@ class Scrapper:
         if not self.codeFound:
             print "No C/Cpp/Python/Java code was found in the current page..."
         else:
-            print "Saving code to:",FilePath.CODEJSON,"/",self.KEY
+            print "\nSaving code to:",os.getcwd(),"\\",FilePath.CODEJSON,"\\",self.KEY,"\\",self.KEY+'.json\n'
             self.dumpJson()
             Actions.register(self)
+            Actions.exportToFiles()
 
     def closeSession(self):
         self.driver.switch_to.window(self.main_window)
@@ -123,6 +132,10 @@ class Scrapper:
             self.scrapeWeb()
             if self.codeFound:
                 Actions.displayExistingCodes(None)
+                choice = raw_input("Want to continue (y/n)")
+                if choice == 'y' or choice == 'Y':
+                    s = Scrapper()
+                    self.execute()
             else:
                 while self.totalElements>0:
                     choice=raw_input("Want to continue (y/n)")
@@ -136,7 +149,6 @@ class Scrapper:
                     else:
                         print "Exiting... : )"
                         exit(1)
-            self.closeSession()
 
 if __name__=="__main__":
     s=Scrapper()

@@ -16,6 +16,9 @@ class loadCode:
     def execute(self):
         self.loadExistingCodes()
         keyCode = input("Enter Code Number to Search: ")
+        if keyCode>len(self.sortedCodes) or keyCode<=0:
+            print "Enter a valid range"
+            exit(1)
         if Actions.search(self.sortedCodes[keyCode - 1]):
             print "Existing Code Files were found for", self.sortedCodes[keyCode-1]
             Actions.displayExistingCodes(self.sortedCodes[keyCode-1], loadJson=True)
