@@ -12,6 +12,7 @@ class Globals:
     c='c'
     cpp='cpp'
     java='java'
+    python3='python3'
 
 class XPath:
     GS_TITLE='//a[contains(@class,"gs-title")]'
@@ -25,11 +26,10 @@ class FilePath:
 
 class Actions:
 
-    def __init__(self):
-        self.Code={}
-        self.KEY=None
-        self.extension=None
-        self.oldStdout=None
+    Code={}
+    KEY=None
+    extension=None
+    LanguageDict={}
 
     @staticmethod
     def search(key):
@@ -49,9 +49,9 @@ class Actions:
                 print h.unescape(line)
 
     @staticmethod
-    def register(self):
-        Actions.Code=self.Code
-        Actions.KEY=self.KEY
+    def register(obj):
+        Actions.Code=obj.Code
+        Actions.KEY=obj.KEY
 
     @staticmethod
     def finalDump(f,code,extension):
@@ -59,10 +59,10 @@ class Actions:
         for line in code:
             if line is not None:
                 try:
-                    f.write(str(h.unescape(line)))
+                    f.write(str(h.unescape(line).encode('utf8')))
                 except Exception as e:
                     f.write("\n@@@@ SOME ERROR ENCOUNTERED AT THIS LINE WHILE DUMPING CODE TO FILE @@@@\n\n")
-                    print "\n\n#### Error in saving some code for", extension, " Kindly cross-check once with link."
+                    print "\n\n#### Error in saving some code for\"", extension, "\" Kindly cross-check once with link."
                     print "#### SOME ERROR HERE HAS BEEN APPENDED IN PLACE OF IT ####"
                     print "--> HOWEVER COMPLETE CODE IS PRESENT IN JSON. YOU CAN FIND BY RUNNING \"loadCode.py\" <--\n"
 
@@ -78,43 +78,45 @@ class Actions:
     @staticmethod
     def exportToFiles():
         with open(os.path.join(os.getcwd(),FilePath.CODEJSON,Actions.KEY,Actions.KEY+'.json'))as f:
-            data=json.load(f)
+            data = json.load(f)
 
-        for index,(language,code) in enumerate(data.items()):
-            if language == Globals.python:
-                Actions.extension ='.py'
+        for index,(language,codes) in enumerate(data.items()):
+            if language == Globals.python or language == Globals.python3:
+                Actions.extension = '.py'
             elif language == Globals.java:
-                Actions.extension ='.java'
+                Actions.extension = '.java'
             elif language == Globals.c:
-                Actions.extension ='.c'
+                Actions.extension = '.c'
             else:
                 Actions.extension = '.cpp'
 
-            if len(code)>1:
-                for index2,item in enumerate(code):
-                    Actions.dumpToFile(item,Actions.extension,index2+1)
+            if len(codes)>1:
+                for index2,code in enumerate(codes):
+                    Actions.dumpToFile(code,Actions.extension,index2+1)
             else:
-                Actions.dumpToFile(code[0], Actions.extension)
+                Actions.dumpToFile(codes[0], Actions.extension)
 
     @staticmethod
     def displayExistingCodes(KEY,loadJson=False):
-        lDict={}
         print "\n\nCodes with following languages were found.."
+
         if loadJson:
             with open(os.path.join(os.getcwd(), FilePath.CODEJSON,KEY,KEY+'.json'), 'r')as f:
                 Actions.Code = json.load(f)
 
         for index, (key, value) in enumerate(Actions.Code.items()):
             print index + 1, "\b. ", key
-            lDict[str(index+1)]=key
+            Actions.LanguageDict[str(index+1)]=key
 
-        l_choice = raw_input("\nEnter choice(s) of language for which you want to see the code...(separated by space): ")
+        l_choice = raw_input("\nEnter choice(s) of language for which you want to see the code...(separated by space) else press 'n' to continue : ")
         temp = l_choice.split(' ')
+        if 'n'in temp or 'N'in temp:
+            return
         for item in temp:
-            if item in lDict:
-                print "\n\n\n", lDict[item].capitalize(), "Code:\n"
-                print "############    Total Codes found for",lDict[item],"language: ",len(Actions.Code[lDict[item]]),"    ############\n\n"
-                for index2,item2 in enumerate(Actions.Code[lDict[item]]):
+            if item in Actions.LanguageDict:
+                print "\n\n\n", Actions.LanguageDict[item].capitalize(), "Code:\n"
+                print "############    Total Codes found for",Actions.LanguageDict[item],"language: ",len(Actions.Code[Actions.LanguageDict[item]]),"    ############\n\n"
+                for index2,item2 in enumerate(Actions.Code[Actions.LanguageDict[item]]):
                     print index2+1,"\b."
                     Actions.printCode(item2)
                     print "\n\n----------------------------------------------------\n\n"

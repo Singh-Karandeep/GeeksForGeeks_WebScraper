@@ -16,8 +16,8 @@ class Scrapper:
         self.KEY=None
         self.driver=None
         self.totalElements=None
-        self.L_languages=['c','python','cpp','java']
-        self.l=None
+        self.languages=['c','python','cpp','java','python3']
+        self.titleList=None
         self.Code={}
         self.chrome_options = Options()
         self.chrome_options.add_argument("--headless")
@@ -37,17 +37,17 @@ class Scrapper:
             count+=1
 
     def fetchSearchResults(self):
-        self.l=self.driver.find_elements_by_xpath(XPath.GS_TITLE)
+        self.titleList=self.driver.find_elements_by_xpath(XPath.GS_TITLE)
 
     def displayResults(self):
         print "Results found for",self.KEY,"are: "
         count = 0
-        if len(self.l):
-            for item in self.l:
-                if len(item.text):
-                    hrefLink = item.get_attribute(Globals.HREF)
-                    self.actualElements.append(item)
-                    print count+1,":",item.text,"   (",hrefLink,")"
+        if len(self.titleList):
+            for title in self.titleList:
+                if len(title.text):
+                    hrefLink = title.get_attribute(Globals.HREF)
+                    self.actualElements.append(title)
+                    print count+1,":",title.text,"   (",hrefLink,")"
                     count+=1
         self.totalElements=count
         print "Total Search Results : ", self.totalElements
@@ -86,9 +86,9 @@ class Scrapper:
         choice=input("Enter link to scrap: ")
 
         if choice<=len(self.actualElements):
-            item=self.actualElements[choice-1]
-            print "Trying to Scrape : ",item.text
-            item.click()
+            link=self.actualElements[choice-1]
+            print "Trying to Scrape : ",link.text
+            link.click()
             time.sleep(2)
 
         url=self.actualElements[choice-1].get_attribute(Globals.HREF)
@@ -97,22 +97,22 @@ class Scrapper:
 
         soup=BeautifulSoup(html)
         self.codeFound=False
-        for item in self.L_languages:
-            code=soup.findAll('pre',attrs={'class': lambda L: L and L.startswith('brush: '+ item+';')})
-            for index,item2 in enumerate(code):
-                item2 = str(item2)[:-6]         #Remove </pre>
-                item2 = item2.split("\n")[1:]
-                code[index]=item2
+        for language in self.languages:
+            codes=soup.findAll('pre',attrs={'class': lambda L: L and L.startswith('brush: '+ language+';')})
+            for index,code in enumerate(codes):
+                code = str(code)[:-6]         #Remove </pre>
+                code = code.split("\n")[1:]
+                codes[index]=code
 
-            if code:
+            if codes:
                 self.codeFound=True
-                if len(code)>0:
-                    self.Code[item]=code
+                if len(codes)>0:
+                    self.Code[language]=codes
 
         if not self.codeFound:
             print "No C/Cpp/Python/Java code was found in the current page..."
         else:
-            print "\nSaving code to:",os.getcwd(),"\\",FilePath.CODEJSON,"\\",self.KEY,"\\",self.KEY+'.json\n'
+            print "\nSaving code to:",os.path.join(os.getcwd(),FilePath.CODEJSON,self.KEY,self.KEY),'\b.json'
             self.dumpJson()
             Actions.register(self)
             Actions.exportToFiles()
@@ -135,7 +135,10 @@ class Scrapper:
                 choice = raw_input("Want to continue (y/n)")
                 if choice == 'y' or choice == 'Y':
                     s = Scrapper()
-                    self.execute()
+                    s.execute()
+                else:
+                    print "Exiting... : )"
+                    exit(1)
             else:
                 while self.totalElements>0:
                     choice=raw_input("Want to continue (y/n)")
