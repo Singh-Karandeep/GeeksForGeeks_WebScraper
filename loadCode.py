@@ -4,6 +4,9 @@ import os
 class loadCode:
     def __init__(self):
         self.sortedCodes=None
+        self.linkText=[]
+        self.codeDirectory=[]
+        self.key=None
 
     def is_number(self,s):
         try:
@@ -20,31 +23,56 @@ class loadCode:
             pass
         return False
 
-    def loadExistingCodes(self):
-        if os.path.exists(os.path.join(os.getcwd(),FilePath.CODEJSON)):
-            print "Codes Already Present in Existing Code Directory: "
-            self.sortedCodes=sorted(os.listdir(os.path.join(os.getcwd(),FilePath.CODEJSON)))
-            for index,code in enumerate(self.sortedCodes):
-                print index+1,"\b. ",code
+    def getLinkText(self,keyCode,codeList):
+        for index,(key,link) in enumerate(codeList):
+            if str(key)==str(keyCode):
+                return link
+        return False
 
-    def execute(self):
-        self.loadExistingCodes()
-        keyCode = raw_input("Enter Code Number to Search: ")
-        if self.is_number(keyCode):
-            keyCode=int(keyCode)
-            if keyCode>len(self.sortedCodes) or keyCode<=0:
+    def checkExceptions(self,choice):
+        if self.is_number(choice):
+            keyCode = int(choice)
+            if keyCode > len(self.codeDirectory) or keyCode <= 0:
                 print "Enter a valid range"
                 exit(1)
+            return choice
         else:
             print "Only digits allowed..."
             exit(2)
 
-        if Actions.search(self.sortedCodes[keyCode - 1]):
-            print "Existing Code Files were found for", self.sortedCodes[keyCode-1]
-            Actions.displayExistingCodes(self.sortedCodes[keyCode-1], loadJson=True)
-        else:
-            print "No Existing Code Files were found for", self.sortedCodes[keyCode-1]
+    def execute(self):
+        continueFurther=True
+        while continueFurther:
+            if os.path.exists(FilePath.CODEJSON):
+                codeList=[]
+                self.codeDirectory=os.listdir(os.path.join(FilePath.CODEJSON))
+                if len(self.codeDirectory)>0:
+                    print "Existing Code Folders were found for"
+                else:
+                    print "No Code Directories were found"
+                for index,item in enumerate(self.codeDirectory):
+                    print index+1,"\b.",item
+                    codeList.append([index+1,item])
+                choice=raw_input('Enter Folder Option to load Code Files: ')
+
+                self.checkExceptions(choice)
+
+                self.key=self.getLinkText(choice,codeList)
+                self.codeDirectory = os.listdir(os.path.join(FilePath.CODEJSON,self.key))
+                if len(self.codeDirectory)>0:
+                    codeList = []
+                    for index,item in enumerate(self.codeDirectory):
+                        print index+1,"\b.",item
+                        codeList.append([index+1,item])
+                    choice = raw_input("Choose Code File to open: ")
+                    self.checkExceptions(choice)
+                    self.linkText = self.getLinkText(choice, codeList)
+                    Actions.displayExistingCodes(self.key,self.linkText,loadJson=True)
+                    continueFurther=raw_input('Want to Continue (y/n):')
+                else:
+                    print "No Code Directories were found inside",self.key
+            else:
+                print "Codes directory doesn't exists..."
 
 if __name__=="__main__":
-    l = loadCode()
-    l.execute()
+    loadCode().execute()

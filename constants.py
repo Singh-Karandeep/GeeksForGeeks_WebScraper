@@ -26,31 +26,25 @@ class FilePath:
 
 class Actions:
 
-    Code={}
+    ACode={}
     KEY=None
     extension=None
     LanguageDict={}
-
-    @staticmethod
-    def search(key):
-        if not os.path.exists(os.path.join(os.getcwd(),FilePath.CODEJSON)):
-            print FilePath.CODEJSON,"Directory doesn't exists..."
-            return False
-        fileList=os.listdir(os.path.join(os.getcwd(),FilePath.CODEJSON))
-        if key in fileList:
-            return True
-        return False
 
     @staticmethod
     def printCode(code):
         h=HTMLParser()
         for line in code:
             if line is not None:
-                print h.unescape(line)
+                print h.unescape(line).encode('utf8')
+
+    @staticmethod
+    def initialize():
+        Actions.ACode.clear()
 
     @staticmethod
     def register(obj):
-        Actions.Code=obj.Code
+        Actions.ACode=obj.Code
         Actions.KEY=obj.KEY
 
     @staticmethod
@@ -67,17 +61,17 @@ class Actions:
                     print "--> HOWEVER COMPLETE CODE IS PRESENT IN JSON. YOU CAN FIND BY RUNNING \"loadCode.py\" <--\n"
 
     @staticmethod
-    def dumpToFile(code,extension,index=None):
+    def dumpToFile(code,extension,linkText,index=None):
         if index is None:
-            with open(os.path.join(os.getcwd(),FilePath.CODEJSON,Actions.KEY,Actions.KEY+extension),'w')as f:
+            with open(os.path.join(os.getcwd(),FilePath.CODEJSON,Actions.KEY,linkText,Actions.KEY+extension),'w')as f:
                 Actions.finalDump(f,code,extension)
         else:
-            with open(os.path.join(os.getcwd(),FilePath.CODEJSON,Actions.KEY,Actions.KEY+'_'+str(index)+extension),'w')as f:
+            with open(os.path.join(os.getcwd(),FilePath.CODEJSON,Actions.KEY,linkText,Actions.KEY+'_'+str(index)+extension),'w')as f:
                 Actions.finalDump(f,code,extension)
 
     @staticmethod
-    def exportToFiles():
-        with open(os.path.join(os.getcwd(),FilePath.CODEJSON,Actions.KEY,Actions.KEY+'.json'))as f:
+    def exportToFiles(linkText):
+        with open(os.path.join(os.getcwd(),FilePath.CODEJSON,Actions.KEY,linkText,Actions.KEY+'.json'))as f:
             data = json.load(f)
 
         for index,(language,codes) in enumerate(data.items()):
@@ -92,19 +86,22 @@ class Actions:
 
             if len(codes)>1:
                 for index2,code in enumerate(codes):
-                    Actions.dumpToFile(code,Actions.extension,index2+1)
+                    Actions.dumpToFile(code,Actions.extension,linkText,index2+1)
             else:
-                Actions.dumpToFile(codes[0], Actions.extension)
+                Actions.dumpToFile(codes[0], Actions.extension,linkText)
 
     @staticmethod
-    def displayExistingCodes(KEY,loadJson=False):
+    def displayExistingCodes(KEY,linkText,loadJson=False):
+        print "Key Received : ", KEY
+        print "Folder received : ",linkText
+
         print "\n\nCodes with following languages were found.."
 
         if loadJson:
-            with open(os.path.join(os.getcwd(), FilePath.CODEJSON,KEY,KEY+'.json'), 'r')as f:
-                Actions.Code = json.load(f)
+            with open(os.path.join(os.getcwd(), FilePath.CODEJSON,KEY,linkText,KEY+'.json'), 'r')as f:
+                Actions.ACode = json.load(f)
 
-        for index, (key, value) in enumerate(Actions.Code.items()):
+        for index, (key, value) in enumerate(Actions.ACode.items()):
             print index + 1, "\b. ", key
             Actions.LanguageDict[str(index+1)]=key
 
@@ -115,8 +112,8 @@ class Actions:
         for item in temp:
             if item in Actions.LanguageDict:
                 print "\n\n\n", Actions.LanguageDict[item].capitalize(), "Code:\n"
-                print "############    Total Codes found for",Actions.LanguageDict[item],"language: ",len(Actions.Code[Actions.LanguageDict[item]]),"    ############\n\n"
-                for index2,item2 in enumerate(Actions.Code[Actions.LanguageDict[item]]):
+                print "############    Total Codes found for",Actions.LanguageDict[item],"language: ",len(Actions.ACode[Actions.LanguageDict[item]]),"    ############\n\n"
+                for index2,item2 in enumerate(Actions.ACode[Actions.LanguageDict[item]]):
                     print index2+1,"\b."
                     Actions.printCode(item2)
                     print "\n\n----------------------------------------------------\n\n"
