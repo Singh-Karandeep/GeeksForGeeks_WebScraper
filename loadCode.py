@@ -71,8 +71,10 @@ class loadCode:
                     continueFurther=raw_input('Want to Continue (y/n):')
                 else:
                     print "No Code Directories were found inside",self.key
+                    continueFurther = False
             else:
                 print "Codes directory doesn't exists..."
+                continueFurther = False
 
 if __name__=="__main__":
     loadCode().execute()
