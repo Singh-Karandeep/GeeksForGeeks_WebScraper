@@ -1,204 +1,235 @@
-from selenium import webdriver
+import json
+import logging
+import os
 import time
+
 import requests
 from BeautifulSoup import BeautifulSoup
-import json
-from constants import Globals,XPath,FilePath,Actions
-import os
+from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
-import logging
 from selenium.webdriver.remote.remote_connection import LOGGER
+
+from constants import Globals, XPath, FilePath, Actions
+
 
 class Scrapper:
 
     def __init__(self):
-        self.actualElements=[]
-        self.KEY=None
-        self.driver=None
-        self.totalElements=None
-        self.languages=['c','python','cpp','java','python3']
-        self.titleList=None
-        self.Code={}
+        self.actual_elements = []
+        self.key = None
+        self.total_elements = None
+        self.title_list = None
+        self.code_dict = {}
+        self.code_found = False
+        self.link_text = None
+        self.special_characters = ['<', '>', ':', '\"', '/', '\\', '|', '?', '*', '.']
+
+        self.driver = None
         self.chrome_options = Options()
         self.chrome_options.add_argument("--headless")
         self.chrome_options.add_argument("--log-level=3")
-        self.codeFound=False
-        self.linkText=None
-        self.specialCharacters=['<','>',':','\"','/','\\','|','?','*']
 
-    def closePopup(self):
-        count=0
-        while count<=10:
+    def close_popup(self):
+        count = 0
+        while count <= 10:
             try:
-                if self.driver.find_element_by_class_name(Globals.CC_COMPLIANCE):
-                    self.driver.find_element_by_class_name(Globals.CC_COMPLIANCE).click()
+                compliance_element = self.driver.find_element_by_class_name(Globals.CC_COMPLIANCE)
+                if compliance_element:
+                    compliance_element.click()
                     break
             except Exception as e:
                 pass
             time.sleep(1)
-            count+=1
+            count += 1
 
-    def fetchSearchResults(self):
-        self.titleList=self.driver.find_elements_by_xpath(XPath.GS_TITLE)
+    def fetch_search_results(self):
+        self.title_list = self.driver.find_elements_by_xpath(XPath.GS_TITLE)
 
-    def displayResults(self):
-        print "Results found for",self.KEY,"are: "
+    def display_results(self):
+        print "Results found for {} are : ".format(self.key)
         count = 0
-        if len(self.titleList):
-            for title in self.titleList:
-                if len(title.text):
-                    hrefLink = title.get_attribute(Globals.HREF)
-                    self.actualElements.append(title)
-                    print count+1,":",title.text.encode('utf8'),"   (",hrefLink.encode('utf8'),")"
-                    count+=1
-        self.totalElements=count
-        print "Total Search Results : ", self.totalElements
+        if self.title_list:
+            for title in self.title_list:
+                if title.text:
+                    href_link = title.get_attribute(Globals.HREF)
+                    self.actual_elements.append(title)
+                    print "{} : {} ({})".format(count + 1, title.text.encode('utf8'), href_link.encode('utf8'))
+                    count += 1
+        self.total_elements = count
+        print "Total Search Results : {}".format(self.total_elements)
 
-    def dumpJson(self):
-        for character in self.specialCharacters:
-            self.linkText=self.linkText.replace(character,'_')
+    @staticmethod
+    def make_dir(path):
+        if not os.path.exists(path):
+            os.mkdir(path)
 
-        if not os.path.exists(os.path.join(os.getcwd(),FilePath.CODEJSON)):
-            os.mkdir(os.path.join(os.getcwd(),FilePath.CODEJSON))
+    def dump_json(self):
+        for character in self.special_characters:
+            self.link_text = self.link_text.replace(character, '_')
 
-        if not os.path.exists(os.path.join(os.getcwd(),FilePath.CODEJSON,self.KEY)):
-            os.mkdir(os.path.join(os.getcwd(),FilePath.CODEJSON,self.KEY))
+        json_path = os.path.join(os.getcwd(), FilePath.CODEJSON)
+        Scrapper.make_dir(json_path)
 
-        if not os.path.exists(os.path.join(os.getcwd(),FilePath.CODEJSON,self.KEY,self.linkText)):
-            os.mkdir(os.path.join(os.getcwd(),FilePath.CODEJSON,self.KEY,self.linkText))
+        key_folder = os.path.join(os.getcwd(), FilePath.CODEJSON, self.key)
+        Scrapper.make_dir(key_folder)
 
-        with open(os.path.join(os.getcwd(),FilePath.CODEJSON,self.KEY,self.linkText,self.KEY+'.json'), 'w')as f:
-            json.dump(self.Code, f, indent=4)
+        link_folder = os.path.join(os.getcwd(), FilePath.CODEJSON, self.key, self.link_text)
+        Scrapper.make_dir(link_folder)
 
-    def scrapeWeb(self):
+        with open(os.path.join(link_folder, self.key + '.json'), 'w')as f:
+            json.dump(self.code_dict, f, indent=4)
+
+    def scrape_web(self):
         LOGGER.setLevel(logging.WARNING)
-        self.driver = webdriver.Chrome(executable_path=os.path.join(os.getcwd(),FilePath.CHROME_DRIVERPATH),
+        self.driver = webdriver.Chrome(executable_path=FilePath.CHROME_DRIVERPATH,
                                        chrome_options=self.chrome_options)
         self.driver.get(Globals.BASE_URL)
 
-        self.driver.find_element_by_name(Globals.SEARCH).send_keys(self.KEY)
+        self.driver.find_element_by_name(Globals.SEARCH).send_keys(self.key)
         time.sleep(1)
 
         self.driver.find_element_by_class_name(Globals.SEARCH_BUTTON).click()
 
-        self.closePopup()
+        self.close_popup()
 
         self.main_window = self.driver.current_window_handle
 
-        self.fetchSearchResults()
-        self.displayResults()
-        if self.totalElements>0:
+        self.fetch_search_results()
+        self.display_results()
+        if self.total_elements > 0:
             self.scrape()
 
+    @staticmethod
+    def fill_language(languages, codes):
+        if len(languages) == len(codes):
+            return
+        else:
+            print "Language for code could not be detected. Saving in Text format."
+            for _ in codes:
+                languages.append('Text')
+
+    def scrape_code_in_page(self, soup):
+        languages = []
+        for hit in soup.findAll(attrs={'class': 'tabtitle'}):
+            languages.append(''.join(hit.findAll(text=True)))
+
+        codes = []
+        for hit in soup.findAll(attrs={'class': 'code'}):
+            codes.append(''.join(hit.findAll(text=True)))
+            # content = hit.contents[1]
+            # for line in content:
+            #     if type(line)!=NavigableString:
+            #         print line.text
+            # print "\n#####################################\n"
+
+        Scrapper.fill_language(languages, codes)
+
+        for language, code in zip(languages, codes):
+            if language not in self.code_dict:
+                self.code_dict[language] = []
+            self.code_dict[language].append(code)
+            self.code_found = True
+
     def scrape(self):
-        choice=input("Enter link to scrap: ")
-        if choice<=len(self.actualElements):
-            link=self.actualElements[choice-1]
-            print "Trying to Scrape : ",link.text
-            self.linkText=link.text
+        choice = input("Enter link to scrap: ")
+        if choice <= len(self.actual_elements):
+            link = self.actual_elements[choice - 1]
+            print "Trying to Scrape : {}".format(link.text)
+            self.link_text = link.text
             link.click()
             time.sleep(2)
 
-        url=self.actualElements[choice-1].get_attribute(Globals.HREF)
-        response=requests.get(url)
-        html=response.content
+            url = link.get_attribute(Globals.HREF)
+            response = requests.get(url)
+            html = response.content
 
-        soup=BeautifulSoup(html)
-        self.codeFound=False
-        for language in self.languages:
-            codes=None
-            codes=soup.findAll('pre',attrs={'class': lambda L: L and L.startswith('brush: '+ language+';')})
-            for index,code in enumerate(codes):
-                code = str(code)[:-6]         #Remove </pre>
-                code = code.split("\n")[1:]
-                codes[index]=code
+            soup = BeautifulSoup(html, convertEntities=BeautifulSoup.HTML_ENTITIES)
 
-            if codes:
-                self.codeFound=True
-                if len(codes)>0:
-                    self.Code[language]=codes
+            self.code_found = False
 
-        if not self.codeFound:
-            print "No C/Cpp/Python/Java code was found in the current page..."
+            self.scrape_code_in_page(soup)
+
+            if not self.code_found:
+                print "No C/Cpp/Python/Java code was found in the current page..."
+            else:
+                print "\nSaving code to : {}.json".format(
+                    os.path.join(os.getcwd(), FilePath.CODEJSON, self.key, self.link_text,
+                                 self.key))
+                self.dump_json()
+                Actions.register(self)
+                Actions.export_to_files(self.link_text)
         else:
-            print "\nSaving code to:",os.path.join(os.getcwd(),FilePath.CODEJSON,self.KEY,self.linkText,self.KEY),'\b.json'
-            self.dumpJson()
-            Actions.register(self)
-            Actions.exportToFiles(self.linkText)
+            print "Please enter valid choice..."
+            self.scrape()
 
-    def closeSession(self):
+    def close_session(self):
         self.driver.switch_to.window(self.main_window)
         self.driver.close()
 
-    def getLinkText(self,keyCode,codeList):
-        for index,(key,link) in enumerate(codeList):
-            if str(key)==str(keyCode):
+    @staticmethod
+    def get_link_text(key_code, code_list):
+        for index, (key, link) in enumerate(code_list):
+            if str(key) == str(key_code):
                 return link
-        return False
+        return None
 
-    def continueFurther(self):
-        print "Continue for: \n1.", self.KEY, "\n\b2. New keyword\n3. Exit"
+    def continue_further(self):
+        print "Continue for: \n1. {}\n2. New keyword\n3. Exit".format(self.key)
+
         choice = input("Enter your choice: ")
         if choice == 1:
             self.driver.switch_to.window(self.main_window)
-            self.displayResults()
-            if self.totalElements > 0:
-                self.Code.clear()
+            self.display_results()
+            if self.total_elements > 0:
+                self.code_dict.clear()
                 self.scrape()
-                if self.codeFound:
-                    Actions.displayExistingCodes(self.KEY, self.linkText)
+                if self.code_found:
+                    Actions.display_existing_codes(self.key, self.link_text)
         elif choice == 2:
             Actions.initialize()
-            self.Code.clear()
-            Scrapper().execute()
+            self.code_dict.clear()
+            Scrapper().main()
         elif choice == 3:
             print "Exiting... :)"
             exit(2)
 
-    def execute(self):
-        self.KEY=raw_input("Enter Keyword : ")
-        print "Searching for existing code for",self.KEY
-        continueExecution=True
-        if os.path.exists(os.path.join(FilePath.CODEJSON,self.KEY)):
-            codeList=[]
-            codeDirectory=os.listdir(os.path.join(FilePath.CODEJSON,self.KEY))
-            if len(codeDirectory)>0:
-                print "Existing Code Folders were found for",self.KEY,":"
-            for index,item in enumerate(codeDirectory):
-                print index+1,"\b.",item
-                codeList.append([index+1,item])
-            choice=raw_input('Enter option to display codes else press n to search for new codes?')
-            if choice.lower()!='n':
-                self.linkText=self.getLinkText(choice,codeList)
-                if not self.linkText:
+    def main(self):
+        self.key = raw_input("Enter Keyword to scrape from https://geeksforgeeks.org: ")
+        print "Searching for existing code for {}".format(self.key)
+        continue_execution = True
+        if os.path.exists(os.path.join(FilePath.CODEJSON, self.key)):
+            code_list = []
+            code_directory = os.listdir(os.path.join(FilePath.CODEJSON, self.key))
+            if len(code_directory) > 0:
+                print "Existing Code Folders were found for", self.key, ":"
+            for index, item in enumerate(code_directory):
+                print "{}. {}".format(index + 1, item)
+                code_list.append([index + 1, item])
+            choice = raw_input('Enter index to display codes else press \'n\' to search for new codes...')
+            if choice.lower() != 'n':
+                self.link_text = Scrapper.get_link_text(choice, code_list)
+                if self.link_text is None:
                     print "Invalid option supplied..."
                 else:
-                    Actions.displayExistingCodes(self.KEY,self.linkText,loadJson=True)
-                    print "Please use loadCode.py to further explore already saved Codes."
-                    continueExecution=False
+                    Actions.display_existing_codes(self.key, self.link_text, load_json=True)
+                    print "Please use load_code.py to further explore already saved Codes."
+                    continue_execution = False
             else:
-                continueExecution=True
+                continue_execution = True
 
-        if continueExecution:
-            print "No Code Files were found for", self.KEY,". Searching online...!!!"
-            self.scrapeWeb()
-            if self.codeFound:
-                Actions.displayExistingCodes(self.KEY,self.linkText)
-                while self.totalElements>0:
-                    choice = raw_input("Want to continue (y/n)")
-                    if choice == 'y' or choice == 'Y':
-                        self.continueFurther()
-                    else:
-                        print "Exiting... :)"
-                        exit(1)
-            else:
-                while self.totalElements>0:
-                    choice=raw_input("Want to continue (y/n)")
-                    if choice=='y'or choice=='Y':
-                        self.continueFurther()
-                    else:
-                        print "Exiting... :)"
-                        exit(3)
+        if continue_execution:
+            print "No Code Files were found for {}. Searching online...!!!".format(self.key)
+            self.scrape_web()
+            if self.code_found:
+                Actions.display_existing_codes(self.key, self.link_text)
+            while self.total_elements > 0:
+                choice = raw_input("Want to continue (y/n)")
+                if choice.lower() == 'y':
+                    self.continue_further()
+                else:
+                    print "Exiting... :)"
+                    exit(1)
 
-if __name__=="__main__":
-    Scrapper().execute()
+
+if __name__ == "__main__":
+    Scrapper().main()

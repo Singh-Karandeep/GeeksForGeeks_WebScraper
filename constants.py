@@ -1,121 +1,141 @@
-import os,json
+import json
+import os
 from HTMLParser import HTMLParser
 from sys import platform
 
+
 class Globals:
-    CC_COMPLIANCE='cc-compliance'
-    HREF='href'
-    BASE_URL="https://www.geeksforgeeks.org/"
-    SEARCH='search'
-    SEARCH_BUTTON='gsc-search-button'
-    python='python'
-    c='c'
-    cpp='cpp'
-    java='java'
-    python3='python3'
+    def __init__(self):
+        pass
+
+    CC_COMPLIANCE = 'cc-compliance'
+    HREF = 'href'
+    BASE_URL = "https://www.geeksforgeeks.org/"
+    SEARCH = 'search'
+    SEARCH_BUTTON = 'gsc-search-button'
+    PYTHON = 'python'
+    C = 'c'
+    CPP = 'cpp'
+    JAVA = 'java'
+    PYTHON3 = 'python3'
+    PHP = 'php'
+    CHASH = 'c#'
+
 
 class XPath:
-    GS_TITLE='//a[contains(@class,"gs-title")]'
+    def __init__(self):
+        pass
+
+    GS_TITLE = '//a[contains(@class,"gs-title")]'
+
 
 class FilePath:
-    CODEJSON='Codes'
-    if platform=="win32":
-        CHROME_DRIVERPATH = os.path.join(os.getcwd(),'Drivers/chromedriver.exe')
+    def __init__(self):
+        pass
+
+    CODEJSON = 'Codes'
+    if platform == "win32":
+        CHROME_DRIVERPATH = os.path.join(os.getcwd(), 'Drivers/chromedriver.exe')
     elif platform == "linux" or platform == "linux2":
-        CHROME_DRIVERPATH = os.path.join(os.getcwd(),'Drivers/chromedriver')
+        CHROME_DRIVERPATH = os.path.join(os.getcwd(), 'Drivers/chromedriver')
+
 
 class Actions:
+    def __init__(self):
+        pass
 
-    ACode={}
-    KEY=None
-    extension=None
-    LanguageDict={}
+    CODE_DICT = {}
+    KEY = None
+    EXTENSION = None
+    LANGUAGE_DICT = {}
+    HTML_PARSER_OBJ = HTMLParser()
 
     @staticmethod
-    def printCode(code):
-        h=HTMLParser()
-        for line in code:
-            if line is not None:
-                print h.unescape(line).encode('utf8')
+    def format_code(code):
+        return Actions.HTML_PARSER_OBJ.unescape(code).encode('utf8')
 
     @staticmethod
     def initialize():
-        Actions.ACode.clear()
+        Actions.CODE_DICT.clear()
 
     @staticmethod
     def register(obj):
-        Actions.ACode=obj.Code
-        Actions.KEY=obj.KEY
+        Actions.CODE_DICT = obj.code_dict
+        Actions.KEY = obj.key
 
     @staticmethod
-    def finalDump(f,code,extension):
-        h = HTMLParser()
+    def final_dump(f, code, extension):
         for line in code:
             if line is not None:
                 try:
-                    f.write(str(h.unescape(line).encode('utf8')))
+                    f.write(str(Actions.format_code(line)))
                 except Exception as e:
                     f.write("\n@@@@ SOME ERROR ENCOUNTERED AT THIS LINE WHILE DUMPING CODE TO FILE @@@@\n\n")
                     print "\n\n#### Error in saving some code for\"", extension, "\" Kindly cross-check once with link."
                     print "#### SOME ERROR HERE HAS BEEN APPENDED IN PLACE OF IT ####"
-                    print "--> HOWEVER COMPLETE CODE IS PRESENT IN JSON. YOU CAN FIND BY RUNNING \"loadCode.py\" <--\n"
+                    print "--> HOWEVER COMPLETE CODE IS PRESENT IN JSON. YOU CAN FIND BY RUNNING \"load_code.py\" <--\n"
 
     @staticmethod
-    def dumpToFile(code,extension,linkText,index=None):
-        if index is None:
-            with open(os.path.join(os.getcwd(),FilePath.CODEJSON,Actions.KEY,linkText,Actions.KEY+extension),'w')as f:
-                Actions.finalDump(f,code,extension)
-        else:
-            with open(os.path.join(os.getcwd(),FilePath.CODEJSON,Actions.KEY,linkText,Actions.KEY+'_'+str(index)+extension),'w')as f:
-                Actions.finalDump(f,code,extension)
+    def dump_to_file(code, extension, link_text, index=None):
+        path = os.path.join(os.getcwd(), FilePath.CODEJSON, Actions.KEY, link_text, Actions.KEY)
+        if index is not None:
+            path = os.path.join(path, '_' + str(index))
+        with open(path + extension, 'w')as f:
+            Actions.final_dump(f, code, extension)
 
     @staticmethod
-    def exportToFiles(linkText):
-        with open(os.path.join(os.getcwd(),FilePath.CODEJSON,Actions.KEY,linkText,Actions.KEY+'.json'))as f:
+    def export_to_files(link_text):
+        with open(os.path.join(os.getcwd(), FilePath.CODEJSON, Actions.KEY, link_text, Actions.KEY + '.json'))as f:
             data = json.load(f)
 
-        for index,(language,codes) in enumerate(data.items()):
-            if language == Globals.python or language == Globals.python3:
-                Actions.extension = '.py'
-            elif language == Globals.java:
-                Actions.extension = '.java'
-            elif language == Globals.c:
-                Actions.extension = '.c'
+        for index, (language, code) in enumerate(data.items()):
+            if language.lower().startswith(Globals.PYTHON3):
+                Actions.EXTENSION = '.py'
+            elif language.lower().startswith(Globals.PYTHON):
+                Actions.EXTENSION = '.py'
+            elif language.lower().startswith(Globals.JAVA):
+                Actions.EXTENSION = '.java'
+            elif language.lower().startswith(Globals.CHASH):
+                Actions.EXTENSION = '.chash'
+            elif language.lower().startswith(Globals.CPP):
+                Actions.EXTENSION = '.cpp'
+            elif language.lower().startswith(Globals.C):
+                Actions.EXTENSION = '.c'
+            elif language.lower().startswith(Globals.PHP):
+                Actions.EXTENSION = '.php'
             else:
-                Actions.extension = '.cpp'
+                Actions.EXTENSION = '.{}'.format(language.lower())
 
-            if len(codes)>1:
-                for index2,code in enumerate(codes):
-                    Actions.dumpToFile(code,Actions.extension,linkText,index2+1)
-            else:
-                Actions.dumpToFile(codes[0], Actions.extension,linkText)
+            Actions.dump_to_file(code, Actions.EXTENSION, link_text)
 
     @staticmethod
-    def displayExistingCodes(KEY,linkText,loadJson=False):
-        print "Key Received : ", KEY
-        print "Folder received : ",linkText
+    def display_existing_codes(key, link_text, load_json=False):
+        print "Key Received : ", key
+        print "Folder received : ", link_text
 
         print "\n\nCodes with following languages were found.."
 
-        if loadJson:
-            with open(os.path.join(os.getcwd(), FilePath.CODEJSON,KEY,linkText,KEY+'.json'), 'r')as f:
-                Actions.ACode = json.load(f)
+        if load_json:
+            with open(os.path.join(os.getcwd(), FilePath.CODEJSON, key, link_text, key + '.json'), 'r')as f:
+                Actions.CODE_DICT = json.load(f)
 
-        for index, (key, value) in enumerate(Actions.ACode.items()):
-            print index + 1, "\b. ", key
-            Actions.LanguageDict[str(index+1)]=key
+        for index, (lang, value) in enumerate(Actions.CODE_DICT.items()):
+            print index + 1, "\b. ", lang
+            Actions.LANGUAGE_DICT[str(index + 1)] = lang
 
-        l_choice = raw_input("\nEnter choice(s) of language for which you want to see the code...(separated by space) else press 'n' to continue : ")
+        l_choice = raw_input("\nEnter choice(s) of language for which you want to see the code..."
+                             "(separated by space) else press 'n' to continue : ")
         temp = l_choice.split(' ')
-        if 'n'in temp or 'N'in temp:
+        if 'n' in temp or 'N' in temp:
             return
         for item in temp:
-            if item in Actions.LanguageDict:
-                print "\n\n\n", Actions.LanguageDict[item].capitalize(), "Code:\n"
-                print "############    Total Codes found for",Actions.LanguageDict[item],"language: ",len(Actions.ACode[Actions.LanguageDict[item]]),"    ############\n\n"
-                for index2,item2 in enumerate(Actions.ACode[Actions.LanguageDict[item]]):
-                    print index2+1,"\b."
-                    Actions.printCode(item2)
+            if item in Actions.LANGUAGE_DICT:
+                print "\n\n\n {} Code:\n".format(Actions.LANGUAGE_DICT[item].capitalize())
+                print "############    Total Codes found for {} language : {}    ############\n\n".format(
+                    Actions.LANGUAGE_DICT[item], len(Actions.CODE_DICT[Actions.LANGUAGE_DICT[item]]))
+                for index2, item2 in enumerate(Actions.CODE_DICT[Actions.LANGUAGE_DICT[item]]):
+                    print "{}.".format(index2 + 1)
+                    print Actions.format_code(item2)
                     print "\n\n----------------------------------------------------\n\n"
             else:
-                print "Code for", item, "was not found in Language Dictionary..."
+                print "Code for {} was not found in Language Dictionary...".format(item)
