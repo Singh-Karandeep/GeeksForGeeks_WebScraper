@@ -16,7 +16,7 @@ Clone the repository
 ```
 ### For Scraping Codes:
 ```
-    python scraper.py
+    python scrape.py
 ```
 ### For loading already saved codes:
 ```
