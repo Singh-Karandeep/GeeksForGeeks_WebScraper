@@ -1,7 +1,7 @@
 # GeeksForGeeks_WebScraper
 
 GeeksForGeeks_WebScraper is a simple python application which helps in finding any code present on "https://geeksforgeeks.org" via Web Scraping.
-Scraped Codes get saved automatically under current working directory.
+Scraped Codes get automatically saved under current working directory.
 
 ### Requirements: 
     Python (2.7.14), GoogleChrome (Tested on Version 68.0)
