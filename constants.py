@@ -51,8 +51,11 @@ class Actions:
     HTML_PARSER_OBJ = HTMLParser()
 
     @staticmethod
-    def format_code(code):
-        return Actions.HTML_PARSER_OBJ.unescape(code).encode('utf8')
+    def format_code(line):
+        line = str(Actions.HTML_PARSER_OBJ.unescape(line).encode('utf8'))
+        uni_line = unicode(line, 'UTF-8')
+        uni_line = uni_line.replace(u"\u00A0", " ")
+        return uni_line
 
     @staticmethod
     def initialize():
