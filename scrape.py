@@ -195,7 +195,8 @@ class Scrapper:
 
     def main(self):
         self.key = raw_input("Enter Keyword to scrape from https://geeksforgeeks.org: ")
-        print "Searching for existing code for {}".format(self.key)
+        print "Searching for existing code for {}.\n\nNote : All Scraped Codes will " \
+              "be saved under Codes/ Directory\n\n".format(self.key)
         continue_execution = True
         if os.path.exists(os.path.join(FilePath.CODEJSON, self.key)):
             code_list = []
