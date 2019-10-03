@@ -22,4 +22,4 @@ Clone the repository
 ```
     python load_code.py
 ``` 
-##### Note: All codes are scraped from https://geeksforgeeks.org
+##### Note: Source of Inspiration: https://geeksforgeeks.org
