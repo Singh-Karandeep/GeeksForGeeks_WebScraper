@@ -12,7 +12,7 @@ Scraped Codes get automatically saved under current working directory.
 Clone the repository
 ```
    $ cd WORKDIR/
-   $ pip install -r requirembents.txt
+   $ pip install -r requirements.txt
 ```
 ### For Scraping Codes:
 ```
